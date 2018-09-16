@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"database/sql/driver"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
@@ -77,6 +79,32 @@ type Reservation struct {
 	Price          int64  `json:"price,omitempty"`
 	ReservedAtUnix int64  `json:"reserved_at,omitempty"`
 	CanceledAtUnix int64  `json:"canceled_at,omitempty"`
+}
+
+type SheetReservation struct {
+	ID         int64         `json:"-"`
+	Rank       string        `json:"-"`
+	Num        int64         `json:"num"`
+	Price      int64         `json:"-"`
+	UserID     sql.NullInt64 `json:"-"`
+	ReservedAt NullTime      `json:"-"`
+}
+
+type NullTime struct {
+	Time  time.Time
+	Valid bool // Valid is true if Time is not NULL
+}
+
+func (n *NullTime) Scan(value interface{}) error {
+	n.Time, n.Valid = value.(time.Time)
+	return nil
+}
+
+func (n NullTime) Value() (driver.Value, error) {
+	if !n.Valid {
+		return nil, nil
+	}
+	return n.Time, nil
 }
 
 type Administrator struct {
@@ -235,38 +263,45 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		"C": &Sheets{},
 	}
 
-	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
+	rows, err := db.Query(`
+	SELECT
+  		ss.id as 'id',
+  		ss.rank as 'rank',
+  		ss.num as 'num',
+  		ss.price as 'price',
+  		rs.user_id as 'user_id',
+  		rs.reserved_at as 'reserved_at'
+	FROM sheets as ss
+	LEFT JOIN (SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL) as rs
+	ON rs.sheet_id = ss.id;`, eventID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var sheet Sheet
-		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
+		var sr SheetReservation
+		if err := rows.Scan(&sr.ID, &sr.Rank, &sr.Num, &sr.Price, &sr.UserID, &sr.ReservedAt); err != nil {
 			return nil, err
 		}
-		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-		event.Total++
-		event.Sheets[sheet.Rank].Total++
-
-		var reservation Reservation
-		// TODO : 377,000回呼ばれてる
-		err := db.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id, sheet_id HAVING reserved_at = MIN(reserved_at)", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
-		if err == nil {
-			sheet.Mine = reservation.UserID == loginUserID
-			sheet.Reserved = true
-			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-		} else if err == sql.ErrNoRows {
-			event.Remains++
-			event.Sheets[sheet.Rank].Remains++
+		var s Sheet
+		s.ID = sr.ID
+		s.Rank = sr.Rank
+		s.Num = sr.Num
+		s.Price = sr.Price
+		if sr.UserID.Valid && sr.ReservedAt.Valid {
+			s.Mine = sr.UserID.Int64 == loginUserID
+			s.Reserved = true
+			s.ReservedAtUnix = sr.ReservedAt.Time.Unix()
 		} else {
-			return nil, err
+			event.Remains++
+			event.Sheets[s.Rank].Remains++
 		}
-
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
+		event.Sheets[s.Rank].Price = event.Price + s.Price
+		event.Total++
+		event.Sheets[s.Rank].Total++
+		event.Sheets[s.Rank].Detail = append(event.Sheets[s.Rank].Detail, &s)
 	}
-
 	return &event, nil
 }
 
@@ -460,10 +495,11 @@ func main() {
 		}
 
 		var totalPrice int
+		// TODO
 		if err := db.QueryRow("SELECT IFNULL(SUM(e.price + s.price), 0) FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.user_id = ? AND r.canceled_at IS NULL", user.ID).Scan(&totalPrice); err != nil {
 			return err
 		}
-
+		// TODO
 		rows, err = db.Query("SELECT event_id FROM reservations WHERE user_id = ? GROUP BY event_id ORDER BY MAX(IFNULL(canceled_at, reserved_at)) DESC LIMIT 5", user.ID)
 		if err != nil {
 			return err
