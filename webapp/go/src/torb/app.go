@@ -23,6 +23,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/middleware"
+	"database/sql/driver"
 )
 
 type User struct {
@@ -83,9 +84,26 @@ type SheetReservation struct {
 	ID         int64      `json:"-"`
 	Rank       string     `json:"-"`
 	Num        int64      `json:"num"`
-	Price      int64      `json:"-"`
-	UserID     int64      `json:"-"`
-	ReservedAt *time.Time `json:"-"`
+	Price      sql.NullInt64      `json:"-"`
+	UserID     sql.NullInt64      `json:"-"`
+	ReservedAt NullTime `json:"-"`
+}
+
+type NullTime struct {
+	Time  time.Time
+	Valid bool // Valid is true if Time is not NULL
+}
+
+func (n *NullTime) Scan(value interface{}) error {
+	n.Time, n.Valid = value.(time.Time)
+	return nil
+}
+
+func (n NullTime) Value() (driver.Value, error) {
+	if !n.Valid {
+		return nil, nil
+	}
+	return n.Time, nil
 }
 
 type Administrator struct {
