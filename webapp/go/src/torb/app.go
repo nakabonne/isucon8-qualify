@@ -488,11 +488,32 @@ func main() {
 			recentReservations = make([]Reservation, 0)
 		}
 
-		var totalPrice int
-		// TODO
-		if err := db.QueryRow("SELECT IFNULL(SUM(e.price + s.price), 0) FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.user_id = ? AND r.canceled_at IS NULL", user.ID).Scan(&totalPrice); err != nil {
+		var eventPrice int
+		if err := db.QueryRow(`
+			SELECT IFNULL(SUM(price), 0)
+			FROM events
+			WHERE id in (
+  				SELECT event_id
+  				FROM reservations r
+  				WHERE r.user_id = ?
+    			AND r.canceled_at IS NULL
+			);`, user.ID).Scan(&eventPrice); err != nil {
 			return err
 		}
+		var seatPrice int
+		if err := db.QueryRow(`
+			SELECT IFNULL(SUM(price), 0)
+			FROM sheets
+			WHERE id in (
+  				SELECT sheet_id
+  				FROM reservations r
+  				WHERE r.user_id = ?
+  				AND r.canceled_at IS NULL
+			);`, user.ID).Scan(&seatPrice); err != nil {
+			return err
+		}
+		totalPrice := eventPrice + seatPrice
+
 		// TODO
 		rows, err = db.Query("SELECT event_id FROM reservations WHERE user_id = ? GROUP BY event_id ORDER BY MAX(IFNULL(canceled_at, reserved_at)) DESC LIMIT 5", user.ID)
 		if err != nil {
