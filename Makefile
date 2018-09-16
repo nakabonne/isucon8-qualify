@@ -5,7 +5,7 @@ SHELL  = /usr/bin/env bash
 
 
 alp:
-	sudo alp -r --sum -f $(file) --aggregates '/api/users/\S+'
+	alp -r --sum -f $(file) --aggregates '/api/users/\S+'
 
 rotate:
 	sh scripts/rotate_alplog.sh
