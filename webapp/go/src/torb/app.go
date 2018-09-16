@@ -84,7 +84,7 @@ type SheetReservation struct {
 	ID         int64      `json:"-"`
 	Rank       string     `json:"-"`
 	Num        int64      `json:"num"`
-	Price      sql.NullInt64      `json:"-"`
+	Price      int64      `json:"-"`
 	UserID     sql.NullInt64      `json:"-"`
 	ReservedAt NullTime `json:"-"`
 }
@@ -289,10 +289,10 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		s.Rank = sr.Rank
 		s.Num = sr.Num
 		s.Price = sr.Price
-		if sr.UserID != 0 {
-			s.Mine = sr.UserID == loginUserID
+		if sr.UserID.Valid && sr.ReservedAt.Valid {
+			s.Mine = sr.UserID.Int64 == loginUserID
 			s.Reserved = true
-			s.ReservedAtUnix = sr.ReservedAt.Unix()
+			s.ReservedAtUnix = sr.ReservedAt.Time.Unix()
 		} else {
 			event.Remains++
 			event.Sheets[s.Rank].Remains++
