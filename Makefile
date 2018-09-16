@@ -4,6 +4,12 @@ MAKEFLAGS = --no-builtin-rules --no-builtin-variables --always-make
 SHELL  = /usr/bin/env bash
 
 
+alp:
+	sudo alp -r --sum -f $(file) --aggregates '/api/users/\S+'
+
+rotate:
+	sh scripts/rotate_alplog.sh
+
 restart:
 	sh scripts/restart.sh
 
