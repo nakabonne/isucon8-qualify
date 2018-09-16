@@ -3,14 +3,13 @@ set -e
 
 git pull
 
-## TODO: h2oのコピー↓こんな感じで
-## sudo cp etc/nginx.conf /etc/nginx/nginx.conf
+sudo cp etc/h2o.conf /etc/h2o/h2o.conf
 
 cd /home/isucon/torb/webapp/go
 make build
 
 ## TODO: h2o.confのシンタックスチェック
-## TODO: h2oのリスタート
+sudo systemctl restart h2o
 
 sudo systemctl restart torb.go
 
