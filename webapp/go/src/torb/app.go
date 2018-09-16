@@ -79,6 +79,15 @@ type Reservation struct {
 	CanceledAtUnix int64  `json:"canceled_at,omitempty"`
 }
 
+type SheetReservation struct {
+	ID         int64      `json:"-"`
+	Rank       string     `json:"-"`
+	Num        int64      `json:"num"`
+	Price      int64      `json:"-"`
+	UserID     int64      `json:"-"`
+	ReservedAt *time.Time `json:"-"`
+}
+
 type Administrator struct {
 	ID        int64  `json:"id,omitempty"`
 	Nickname  string `json:"nickname,omitempty"`
@@ -235,38 +244,48 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		"C": &Sheets{},
 	}
 
-	rows, err := db.Query("SELECT * FROM sheets ORDER BY `rank`, num")
+	rows, err := db.Query(`
+	SELECT
+  		ss.id as 'id',
+  		ss.rank as 'rank',
+  		ss.num as 'num',
+  		ss.price as 'price',
+  		rs.user_id as 'user_id',
+  		rs.reserved_at as 'reserved_at'
+	FROM sheets as ss
+	LEFT JOIN (SELECT * FROM reservations WHERE event_id = 10 AND canceled_at IS NULL) as rs
+	ON rs.sheet_id = ss.id;`, eventID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var sheet Sheet
-		if err := rows.Scan(&sheet.ID, &sheet.Rank, &sheet.Num, &sheet.Price); err != nil {
+		var sr SheetReservation
+		if err := rows.Scan(&sr.ID, &sr.Rank, &sr.Num, &sr.Price, sr.UserID, sr.ReservedAt); err != nil {
 			return nil, err
 		}
-		event.Sheets[sheet.Rank].Price = event.Price + sheet.Price
-		event.Total++
-		event.Sheets[sheet.Rank].Total++
 
-		var reservation Reservation
-		// TODO : 377,000回呼ばれてる
-		err := db.QueryRow("SELECT * FROM reservations WHERE event_id = ? AND sheet_id = ? AND canceled_at IS NULL GROUP BY event_id, sheet_id HAVING reserved_at = MIN(reserved_at)", event.ID, sheet.ID).Scan(&reservation.ID, &reservation.EventID, &reservation.SheetID, &reservation.UserID, &reservation.ReservedAt, &reservation.CanceledAt)
-		if err == nil {
-			sheet.Mine = reservation.UserID == loginUserID
-			sheet.Reserved = true
-			sheet.ReservedAtUnix = reservation.ReservedAt.Unix()
-		} else if err == sql.ErrNoRows {
-			event.Remains++
-			event.Sheets[sheet.Rank].Remains++
+		var s Sheet
+		s.ID = sr.ID
+		s.Rank = sr.Rank
+		s.Num = sr.Num
+		s.Price = sr.Price
+		if sr.UserID != 0 {
+			s.Mine = sr.UserID == loginUserID
+			s.Reserved = true
+			s.ReservedAtUnix = sr.ReservedAt.Unix()
 		} else {
-			return nil, err
+			event.Remains++
+			event.Sheets[s.Rank].Remains++
 		}
 
-		event.Sheets[sheet.Rank].Detail = append(event.Sheets[sheet.Rank].Detail, &sheet)
-	}
+		event.Sheets[s.Rank].Price = event.Price + s.Price
+		event.Total++
+		event.Sheets[s.Rank].Total++
 
+		event.Sheets[s.Rank].Detail = append(event.Sheets[s.Rank].Detail, &s)
+	}
 	return &event, nil
 }
 
