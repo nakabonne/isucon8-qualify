@@ -253,7 +253,7 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
   		rs.user_id as 'user_id',
   		rs.reserved_at as 'reserved_at'
 	FROM sheets as ss
-	LEFT JOIN (SELECT * FROM reservations WHERE event_id = 10 AND canceled_at IS NULL) as rs
+	LEFT JOIN (SELECT * FROM reservations WHERE event_id = ? AND canceled_at IS NULL) as rs
 	ON rs.sheet_id = ss.id;`, eventID)
 	if err != nil {
 		return nil, err
