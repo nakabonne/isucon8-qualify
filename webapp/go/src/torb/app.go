@@ -18,12 +18,13 @@ import (
 	"strings"
 	"time"
 
+	"database/sql/driver"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/middleware"
-	"database/sql/driver"
 )
 
 type User struct {
@@ -81,12 +82,12 @@ type Reservation struct {
 }
 
 type SheetReservation struct {
-	ID         int64      `json:"-"`
-	Rank       string     `json:"-"`
-	Num        int64      `json:"num"`
-	Price      int64      `json:"-"`
-	UserID     sql.NullInt64      `json:"-"`
-	ReservedAt NullTime `json:"-"`
+	ID         int64         `json:"-"`
+	Rank       string        `json:"-"`
+	Num        int64         `json:"num"`
+	Price      int64         `json:"-"`
+	UserID     sql.NullInt64 `json:"-"`
+	ReservedAt NullTime      `json:"-"`
 }
 
 type NullTime struct {
@@ -283,7 +284,6 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 		if err := rows.Scan(&sr.ID, &sr.Rank, &sr.Num, &sr.Price, &sr.UserID, &sr.ReservedAt); err != nil {
 			return nil, err
 		}
-
 		var s Sheet
 		s.ID = sr.ID
 		s.Rank = sr.Rank
@@ -297,11 +297,9 @@ func getEvent(eventID, loginUserID int64) (*Event, error) {
 			event.Remains++
 			event.Sheets[s.Rank].Remains++
 		}
-
 		event.Sheets[s.Rank].Price = event.Price + s.Price
 		event.Total++
 		event.Sheets[s.Rank].Total++
-
 		event.Sheets[s.Rank].Detail = append(event.Sheets[s.Rank].Detail, &s)
 	}
 	return &event, nil
