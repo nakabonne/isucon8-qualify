@@ -9,8 +9,6 @@ import (
 	"html/template"
 	"io"
 	"log"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"sort"
@@ -359,10 +357,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
 
 	e := echo.New()
 	funcs := template.FuncMap{
