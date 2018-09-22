@@ -7,6 +7,7 @@ echo ""
 
 # reverse proxy
 sudo cp etc/h2o.conf /etc/h2o/h2o.conf
+sudo cp etc/nginx.conf /etc/nginx/nginx.conf
 
 # log rotate
 make rotate
@@ -18,8 +19,13 @@ echo ""
 cd /home/isucon/torb/webapp/go
 make build
 
+
 sudo /usr/sbin/h2o -t -c /etc/h2o/h2o.conf
 sudo systemctl restart h2o
+
+sudo cp etc/nginx.conf /etc/nginx/nginx.conf
+sudo /usr/sbin/nginx -t
+sudo service nginx reload
 echo "$(tput setaf 2)reverse proxy reload Succeeded! $(tput sgr0)"
 echo ""
 
