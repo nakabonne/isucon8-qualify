@@ -23,7 +23,6 @@ make build
 sudo /usr/sbin/h2o -t -c /etc/h2o/h2o.conf
 sudo systemctl restart h2o
 
-sudo cp etc/nginx.conf /etc/nginx/nginx.conf
 sudo /usr/sbin/nginx -t
 sudo service nginx reload
 echo "$(tput setaf 2)reverse proxy reload Succeeded! $(tput sgr0)"
