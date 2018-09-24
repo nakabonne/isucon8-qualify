@@ -749,6 +749,8 @@ func main() {
 		return c.NoContent(204)
 	}, loginRequired)
 	e.GET("/admin/", func(c echo.Context) error {
+		time.Sleep(time.Second * 10)
+
 		var events []*Event
 		administrator := c.Get("administrator")
 		if administrator != nil {
@@ -900,6 +902,7 @@ func main() {
 		return nil
 	}, adminLoginRequired)
 	e.GET("/admin/api/reports/events/:id/sales", func(c echo.Context) error {
+		time.Sleep(time.Second * 10)
 		eventID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 		if err != nil {
 			return resError(c, "not_found", 404)
