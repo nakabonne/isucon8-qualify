@@ -13,6 +13,10 @@ rotate:
 restart:
 	sh scripts/restart.sh
 
+restart2:
+	sh scripts/restart02.sh
+
+
 set-slow-log:
 	sudo mysql -uisucon -pisucon -e "set global slow_query_log = 1"
 	sudo mysql -uisucon -pisucon -e "set global long_query_time = 0"
