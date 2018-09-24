@@ -7,7 +7,7 @@ echo ""
 
 # reverse proxy
 #sudo cp etc/h2o.conf /etc/h2o/h2o.conf
-sudo cp etc/nginx.conf /etc/nginx/nginx.conf
+sudo cp etc/nginx02.conf /etc/nginx/nginx.conf
 
 # log rotate
 make rotate
