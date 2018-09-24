@@ -237,6 +237,7 @@ func getEvents(all bool) ([]*Event, error) {
 		events = append(events, &event)
 	}
 	for i, v := range events {
+		fmt.Println("ゲット")
 		event, err := getEvent(v.ID, -1)
 		if err != nil {
 			return nil, err
@@ -753,12 +754,15 @@ func main() {
 
 		var events []*Event
 		administrator := c.Get("administrator")
+		fmt.Prinl("始める")
 		if administrator != nil {
+			fmt.Prinl("nilじゃない")
 			var err error
 			if events, err = getEvents(true); err != nil {
 				return err
 			}
 		}
+		fmt.Prinl("getEvents終了")
 		return c.Render(200, "admin.tmpl", echo.Map{
 			"events":        events,
 			"administrator": administrator,
