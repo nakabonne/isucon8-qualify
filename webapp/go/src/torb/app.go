@@ -754,15 +754,15 @@ func main() {
 
 		var events []*Event
 		administrator := c.Get("administrator")
-		fmt.Prinl("始める")
+		fmt.Println("始める")
 		if administrator != nil {
-			fmt.Prinl("nilじゃない")
+			fmt.Println("nilじゃない")
 			var err error
 			if events, err = getEvents(true); err != nil {
 				return err
 			}
 		}
-		fmt.Prinl("getEvents終了")
+		fmt.Println("getEvents終了")
 		return c.Render(200, "admin.tmpl", echo.Map{
 			"events":        events,
 			"administrator": administrator,
