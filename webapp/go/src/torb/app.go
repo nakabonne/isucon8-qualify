@@ -749,7 +749,7 @@ func main() {
 		return c.NoContent(204)
 	}, loginRequired)
 	e.GET("/admin/", func(c echo.Context) error {
-		time.Sleep(time.Second * 10)
+		//time.Sleep(time.Second * 10)
 
 		var events []*Event
 		administrator := c.Get("administrator")
